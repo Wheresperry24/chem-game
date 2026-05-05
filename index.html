@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chemistry Minigame Party</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --bg-color: #0d0d1a;
+        --neon-cyan: #00e5ff;
+        --neon-pink: #ff2d78;
+        --neon-amber: #ffb700;
+        --neon-green: #00ff88;
+        --neon-purple: #bd00ff;
+        --board-size: 800px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        font-family: 'Exo 2', sans-serif;
+        background-color: var(--bg-color);
+        color: white;
+        overflow-x: hidden;
+        user-select: none;
+    }
+    h1, h2, h3, .orbitron { font-family: 'Orbitron', sans-serif; }
+
+    /* Button Styling */
+    button {
+        background: transparent;
+        border: 2px solid var(--neon-cyan);
+        color: var(--neon-cyan);
+        font-family: 'Orbitron', sans-serif;
+        padding: 10px 20px;
+        font-size: 1.2rem;
+        cursor: pointer;
+        text-transform: uppercase;
+        border-radius: 5px;
+        transition: all 0.2s;
+        text-shadow: 0 0 5px var(--neon-cyan);
+        box-shadow: 0 0 10px inset var(--neon-cyan), 0 0 10px var(--neon-cyan);
+    }
+    button:hover:not(:disabled) {
+        background: var(--neon-cyan);
+        color: #000;
+        box-shadow: 0 0 20px inset var(--neon-cyan), 0 0 20px var(--neon-cyan);
+    }
+    button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    button.pink-btn {
+        border-color: var(--neon-pink);
+        color: var(--neon-pink);
+        text-shadow: 0 0 5px var(--neon-pink);
+        box-shadow: 0 0 10px inset var(--neon-pink), 0 0 10px var(--neon-pink);
+    }
+    button.pink-btn:hover:not(:disabled) {
+        background: var(--neon-pink);
+        color: #000;
+        box-shadow: 0 0 20px inset var(--neon-pink), 0 0 20px var(--neon-pink);
+    }
+    button.amber-btn {
+        border-color: var(--neon-amber);
+        color: var(--neon-amber);
+        text-shadow: 0 0 5px var(--neon-amber);
+        box-shadow: 0 0 10px inset var(--neon-amber), 0 0 10px var(--neon-amber);
+    }
+    button.amber-btn:hover:not(:disabled) {
+        background: var(--neon-amber);
+        color: #000;
+        box-shadow: 0 0 20px inset var(--neon-amber), 0 0 20px var(--neon-amber);
+    }
+
+    /* Screens */
+    .screen {
+        display: none;
+        width: 100vw;
+        height: 100vh;
+        position: absolute;
+        top: 0; left: 0;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    .screen.active { display: flex; }
+
+    /* Particles */
+    #particles {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden;
+    }
+    .particle {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(0, 229, 255, 0.5);
+        box-shadow: 0 0 10px var(--neon-cyan);
+        animation: floatUp linear infinite;
+    }
+    @keyframes floatUp {
+        0% { transform: translateY(100vh) scale(0); opacity: 0; }
+        20% { opacity: 1; scale: 1; }
+        80% { opacity: 1; }
+        100% { transform: translateY(-100px) scale(0.5); opacity: 0; }
+    }
+
+    /* Title Screen */
+    #title-screen h1 {
+        font-size: 5rem;
+        margin-bottom: 10px;
+        text-align: center;
+        animation: textGlow 3s infinite alternate;
+    }
+    @keyframes textGlow {
+        0% { text-shadow: 0 0 10px var(--neon-cyan), 0 0 20px var(--neon-cyan), 0 0 40px var(--neon-cyan); color: #fff; }
+        50% { text-shadow: 0 0 10px var(--neon-pink), 0 0 20px var(--neon-pink), 0 0 40px var(--neon-pink); color: #fff; }
+        100% { text-shadow: 0 0 10px var(--neon-amber), 0 0 20px var(--neon-amber), 0 0 40px var(--neon-amber); color: #fff; }
+    }
+    .subtitle {
+        font-size: 1.5rem; margin-bottom: 40px; color: #ccc;
+    }
+
+    /* Modals */
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: none; justify-content: center; align-items: center; z-index: 100;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-content {
+        background: #1a1a2e; padding: 30px; border: 2px solid var(--neon-cyan);
+        border-radius: 10px; box-shadow: 0 0 20px var(--neon-cyan);
+        max-width: 600px; text-align: center;
+    }
+    .modal-content h2 { margin-bottom: 20px; color: var(--neon-cyan); }
+    .modal-content p { margin-bottom: 15px; font-size: 1.1rem; line-height: 1.5; }
+
+    /* Setup Screen */
+    .player-slot {
+        display: flex; align-items: center; gap: 15px; margin-bottom: 15px;
+        background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px;
+    }
+    .color-swatch {
+        width: 30px; height: 30px; border-radius: 50%; border: 2px solid #fff;
+    }
+    .player-input {
+        background: #000; border: 1px solid #555; color: #fff;
+        padding: 10px; font-family: 'Exo 2'; font-size: 1.1rem; border-radius: 5px;
+        width: 200px;
+    }
+    .player-input:focus { outline: 1px solid var(--neon-cyan); }
+    .toggle-label { cursor: pointer; display: flex; align-items: center; gap: 5px; }
+
+    /* Board Screen */
+    #board-container {
+        display: flex;
+        width: 100%; height: 100%;
+    }
+    #sidebar {
+        width: 300px; border-right: 2px solid #333; background: #111;
+        display: flex; flex-direction: column; padding: 20px;
+    }
+    #players-info { flex-grow: 1; }
+    .player-card {
+        padding: 15px; margin-bottom: 10px; border-radius: 8px;
+        background: #222; border: 2px solid transparent; transition: all 0.3s;
+    }
+    .player-card.active-turn { border-color: var(--neon-cyan); box-shadow: 0 0 15px rgba(0, 229, 255, 0.5); }
+    .player-card h3 { display: flex; align-items: center; gap: 10px; margin-bottom: 10px;}
+    .player-card .swatch { width: 15px; height: 15px; border-radius: 50%; }
+    .stats { display: flex; justify-content: space-between; font-size: 1.2rem; font-weight: bold;}
+    
+    #controls {
+        text-align: center; border-top: 2px solid #333; padding-top: 20px;
+    }
+    #turn-indicator { font-size: 1.5rem; margin-bottom: 15px; font-weight: bold; }
+    #dice-container {
+        width: 100px; height: 100px; margin: 0 auto 20px;
+        perspective: 600px; display: none;
+    }
+    .die {
+        width: 100%; height: 100%; background: #fff; color: #000;
+        display: flex; justify-content: center; align-items: center;
+        font-size: 4rem; font-weight: bold; border-radius: 15px;
+        box-shadow: 0 0 20px var(--neon-cyan);
+        font-family: 'Orbitron';
+    }
+    .rolling { animation: diceRoll 1.5s infinite; }
+    @keyframes diceRoll {
+        0% { transform: rotateX(0deg) rotateY(0deg) scale(1); }
+        50% { transform: rotateX(360deg) rotateY(180deg) scale(1.2); }
+        100% { transform: rotateX(720deg) rotateY(360deg) scale(1); }
+    }
+
+    #board-area {
+        flex-grow: 1; display: flex; justify-content: center; align-items: center;
+        position: relative;
+    }
+    .grid-board {
+        display: grid;
+        grid-template-columns: repeat(10, 60px);
+        grid-template-rows: repeat(10, 60px);
+        gap: 10px;
+        position: relative;
+    }
+    .space {
+        width: 60px; height: 60px; border-radius: 50%;
+        display: flex; justify-content: center; align-items: center;
+        position: relative;
+        background: #333;
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+    }
+    /* Space Colors */
+    .space.blue { border: 3px solid var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan); }
+    .space.red { border: 3px solid var(--neon-pink); box-shadow: 0 0 10px var(--neon-pink); }
+    .space.minigame { border: 3px solid var(--neon-amber); box-shadow: 0 0 10px var(--neon-amber); }
+    .space.event { border: 3px solid var(--neon-purple); box-shadow: 0 0 10px var(--neon-purple); }
+    .space.shop { border: 3px solid #ff00ff; box-shadow: 0 0 15px #ff00ff; font-family: 'Orbitron'; font-weight: bold; font-size: 1.5rem; color: #ff00ff; }
+    .space.start { border: 3px solid var(--neon-green); box-shadow: 0 0 15px var(--neon-green); font-family: 'Orbitron'; font-weight: bold; }
+    
+    .mol-marker {
+        position: absolute; font-size: 2rem; color: var(--neon-amber);
+        text-shadow: 0 0 10px #fff;
+        animation: pulse 1s infinite alternate;
+        pointer-events: none; z-index: 5;
+    }
+    @keyframes pulse { from { transform: scale(0.9); } to { transform: scale(1.2); } }
+
+    .player-token {
+        position: absolute; width: 30px; height: 30px; border-radius: 50%;
+        display: flex; justify-content: center; align-items: center;
+        font-weight: bold; color: #fff; text-shadow: 1px 1px 2px #000;
+        border: 2px solid #fff; box-shadow: 0 0 10px rgba(255,255,255,0.5);
+        transition: all 0.3s ease-in-out;
+        z-index: 10;
+    }
+
+    /* Minigame Overlay */
+    #minigame-screen { background: rgba(0,0,0,0.95); }
+    .timer-bar-container { width: 80%; height: 20px; background: #333; border-radius: 10px; margin: 20px 0; overflow: hidden; border: 2px solid #fff; }
+    #timer-bar { width: 100%; height: 100%; background: var(--neon-green); transition: width 0.1s linear, background-color 0.5s; }
+    .mg-question { font-size: 2.5rem; margin: 30px 0; text-align: center; font-weight: bold; }
+    .mg-options { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 80%; max-width: 600px; }
+    .mg-option {
+        background: #222; border: 2px solid var(--neon-cyan); border-radius: 10px; padding: 20px;
+        font-size: 1.5rem; cursor: pointer; transition: all 0.2s; font-family: 'Exo 2'; color: white;
+    }
+    .mg-option:hover { background: var(--neon-cyan); color: #000; }
+    .mg-option.correct { background: var(--neon-green) !important; color: #000; border-color: #fff; }
+    .mg-option.wrong { background: var(--neon-pink) !important; color: #fff; border-color: #fff; }
+
+    /* Event Screen */
+    #event-screen { background: rgba(0,0,0,0.95); perspective: 1000px; }
+    .event-card {
+        width: 300px; height: 450px; position: relative; transition: transform 0.8s;
+        transform-style: preserve-3d; cursor: pointer;
+    }
+    .event-card.flipped { transform: rotateY(180deg); }
+    .card-face {
+        position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
+        border-radius: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        border: 4px solid var(--neon-purple); box-shadow: 0 0 30px rgba(189,0,255,0.5); background: #1a0033;
+    }
+    .card-back { background: repeating-linear-gradient(45deg, #1a0033, #1a0033 10px, #330066 10px, #330066 20px); font-size: 4rem; color: var(--neon-purple); text-shadow: 0 0 10px #000; }
+    .card-front { transform: rotateY(180deg); padding: 20px; text-align: center; }
+    .card-emoji { font-size: 5rem; margin-bottom: 20px; }
+    .card-title { font-size: 2rem; color: var(--neon-purple); margin-bottom: 15px; font-family: 'Orbitron'; }
+    .card-desc { font-size: 1.2rem; }
+
+    /* Toast */
+    .toast {
+        position: absolute; background: rgba(0,0,0,0.8); color: #fff;
+        padding: 10px 20px; border-radius: 5px; font-size: 1.2rem; font-weight: bold;
+        pointer-events: none; z-index: 50; animation: floatToast 2s forwards; border: 1px solid #fff;
+    }
+    @keyframes floatToast {
+        0% { transform: translateY(0); opacity: 1; }
+        100% { transform: translateY(-50px); opacity: 0; }
+    }
+
+    /* Results */
+    .podium { display: flex; align-items: flex-end; justify-content: center; gap: 20px; height: 300px; margin-top: 50px;}
+    .podium-spot { display: flex; flex-direction: column; align-items: center; width: 120px; }
+    .podium-bar { background: var(--neon-cyan); width: 100%; border-top-left-radius: 10px; border-top-right-radius: 10px; display: flex; justify-content: center; font-size: 3rem; font-weight: bold; color: #000; padding-top: 10px; box-shadow: inset 0 0 20px rgba(255,255,255,0.5);}
+    .spot-1 .podium-bar { height: 200px; background: var(--neon-amber); }
+    .spot-2 .podium-bar { height: 150px; background: #c0c0c0; }
+    .spot-3 .podium-bar { height: 100px; background: #cd7f32; }
+    .spot-4 .podium-bar { height: 50px; background: #555; }
+    .podium-name { font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; font-family: 'Orbitron'; text-align: center;}
+    .podium-score { margin-bottom: 5px; }
+
+</style>
+</head>
+<body>
+
+<div id="particles"></div>
+
+<!-- 1. Title Screen -->
+<div id="title-screen" class="screen active">
+    <h1>⚗️ CHEM PARTY</h1>
+    <div class="subtitle">The Chemistry Mini-Game Board Game</div>
+    <div style="display: flex; gap: 20px;">
+        <button onclick="showScreen('setup-screen')" style="font-size: 1.5rem; padding: 15px 40px;">START GAME</button>
+        <button class="pink-btn" onclick="document.getElementById('how-to-modal').classList.add('active')">How to Play</button>
+    </div>
+</div>
+
+<div id="how-to-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h2>How to Play</h2>
+        <p>Roll the dice and move around the board. Collect <b>Atoms (⚛)</b> and buy <b>Mols (◎)</b> to win!</p>
+        <p><span style="color: var(--neon-cyan);">Blue Spaces:</span> +3 Atoms</p>
+        <p><span style="color: var(--neon-pink);">Red Spaces:</span> -3 Atoms</p>
+        <p><span style="color: var(--neon-amber);">Mini-Game Spaces:</span> Compete in chemistry trivia for +5 Atoms!</p>
+        <p><span style="color: var(--neon-purple);">Event Spaces:</span> Draw a random card (good or bad!)</p>
+        <p>When you are near the <b>Mol Marker</b> (◎), you can buy a Mol for 10 Atoms. Mols are worth 10 Atoms at the end of the game.</p>
+        <button class="amber-btn" onclick="document.getElementById('how-to-modal').classList.remove('active')" style="margin-top: 20px;">Got It!</button>
+    </div>
+</div>
+
+<!-- 2. Setup Screen -->
+<div id="setup-screen" class="screen">
+    <h2 style="font-size: 3rem; margin-bottom: 30px; text-shadow: 0 0 10px var(--neon-cyan);">Who's Playing?</h2>
+    <div id="player-slots-container">
+        <!-- Slots injected by JS -->
+    </div>
+    <div style="margin-top: 20px; font-size: 1.5rem;">
+        Total Rounds: <input type="number" id="setup-rounds" value="5" min="1" max="50" class="player-input" style="width: 80px; text-align: center;">
+    </div>
+    <button onclick="startGame()" style="margin-top: 30px; font-size: 1.5rem;">Begin!</button>
+    <p id="setup-error" style="color: var(--neon-pink); margin-top: 15px; display: none;">Need at least 2 active players with names!</p>
+</div>
+
+<!-- 3. Board Screen -->
+<div id="board-screen" class="screen">
+    <div id="board-container">
+        <div id="sidebar">
+            <h2 class="orbitron" style="text-align: center; margin-bottom: 10px;">Round <span id="round-counter">1</span>/<span id="max-rounds-display">5</span></h2>
+            <div id="players-info"></div>
+            <div id="controls">
+                <div id="turn-indicator"></div>
+                <div id="dice-container">
+                    <div class="die" id="die">1</div>
+                </div>
+                <button id="roll-btn" onclick="takeTurn()">ROLL DICE</button>
+                <button id="items-btn" class="amber-btn" onclick="openInventory()" style="margin-top: 10px; width: 100%;">ITEMS</button>
+                <button id="end-turn-btn" class="pink-btn" style="display:none; margin-top:10px;" onclick="endTurn()">END TURN</button>
+            </div>
+        </div>
+        <div id="board-area">
+            <div class="grid-board" id="grid"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Buy Mol Prompt -->
+<div id="mol-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h2>Buy Mol?</h2>
+        <p style="font-size: 4rem; margin: 10px 0;">◎</p>
+        <p>Pay 10 atoms to collect this mol?</p>
+        <div style="display: flex; gap: 20px; justify-content: center; margin-top: 20px;">
+            <button onclick="buyMol(true)">Yes (-10 ⚛)</button>
+            <button class="pink-btn" onclick="buyMol(false)">No</button>
+        </div>
+    </div>
+</div>
+
+<!-- 4. Minigame Screen -->
+<div id="minigame-screen" class="screen">
+    <h2 class="orbitron" style="color: var(--neon-amber); font-size: 3rem;" id="mg-title">Mini-Game</h2>
+    <div class="timer-bar-container"><div id="timer-bar"></div></div>
+    <div class="mg-question" id="mg-question">Question?</div>
+    <div class="mg-options" id="mg-options"></div>
+    <button id="mg-continue-btn" style="display:none; margin-top: 40px;" onclick="closeMiniGame()">Continue</button>
+</div>
+
+<!-- Event Screen -->
+<div id="event-screen" class="screen">
+    <h2 class="orbitron" style="margin-bottom: 30px; font-size: 3rem;">Event Space!</h2>
+    <div class="event-card" id="event-card" onclick="flipEventCard()">
+        <div class="card-face card-back">?</div>
+        <div class="card-face card-front">
+            <div class="card-emoji" id="ev-emoji">💥</div>
+            <div class="card-title" id="ev-title">Explosion</div>
+            <div class="card-desc" id="ev-desc">Lose 5 atoms!</div>
+        </div>
+    </div>
+    <button id="ev-continue-btn" style="display:none; margin-top: 40px;" onclick="closeEvent()">Dismiss</button>
+</div>
+
+<!-- Shop Modal -->
+<div id="shop-modal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 800px;">
+        <h2 style="font-size: 2.5rem; color: #ff00ff;">🛒 Item Shop</h2>
+        <p>Spend your atoms to gain an advantage!</p>
+        <div style="display: flex; gap: 20px; justify-content: center; margin-top: 20px;">
+            <div style="background: #222; padding: 15px; border-radius: 8px; border: 2px solid var(--neon-cyan); flex: 1;">
+                <h3 style="color: var(--neon-cyan);">Catalyst</h3>
+                <p style="font-size: 0.9rem; margin-top: 10px;">+5 to your next roll</p>
+                <button onclick="buyItem('Catalyst', 5)" style="margin-top: 15px;">Buy (5 ⚛)</button>
+            </div>
+            <div style="background: #222; padding: 15px; border-radius: 8px; border: 2px solid var(--neon-amber); flex: 1;">
+                <h3 style="color: var(--neon-amber);">Loaded Dice</h3>
+                <p style="font-size: 0.9rem; margin-top: 10px;">Choose your next roll (1-6)</p>
+                <button class="amber-btn" onclick="buyItem('Loaded Dice', 10)" style="margin-top: 15px;">Buy (10 ⚛)</button>
+            </div>
+            <div style="background: #222; padding: 15px; border-radius: 8px; border: 2px solid var(--neon-pink); flex: 1;">
+                <h3 style="color: var(--neon-pink);">Inhibitor</h3>
+                <p style="font-size: 0.9rem; margin-top: 10px;">-3 to another player's roll</p>
+                <button class="pink-btn" onclick="buyItem('Inhibitor', 7)" style="margin-top: 15px;">Buy (7 ⚛)</button>
+            </div>
+        </div>
+        <button onclick="closeShop()" style="margin-top: 30px; border-color: #fff; color: #fff;">Leave Shop</button>
+    </div>
+</div>
+
+<!-- Inventory Modal -->
+<div id="inventory-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h2>Your Items</h2>
+        <div id="inventory-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+            <!-- Items injected here -->
+        </div>
+        <button onclick="closeInventory()" style="margin-top: 20px;">Close</button>
+    </div>
+</div>
+
+<!-- Target Player Modal for Sabotage -->
+<div id="target-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h2 style="color: var(--neon-pink);">Select Target</h2>
+        <p>Who should lose 3 on their next roll?</p>
+        <div id="target-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 20px;">
+            <!-- Players injected here -->
+        </div>
+        <button onclick="document.getElementById('target-modal').classList.remove('active')" style="margin-top: 20px;">Cancel</button>
+    </div>
+</div>
+
+<!-- Custom Dice Input Modal -->
+<div id="custom-dice-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h2 style="color: var(--neon-amber);">Loaded Dice</h2>
+        <p>Enter a number between 1 and 6:</p>
+        <input type="number" id="custom-dice-input" min="1" max="6" value="6" class="player-input" style="font-size: 2rem; width: 100px; text-align: center; margin: 20px 0;">
+        <br>
+        <button class="amber-btn" onclick="applyCustomDice()">Roll It!</button>
+    </div>
+</div>
+
+<!-- Results Screen -->
+<div id="results-screen" class="screen">
+    <h1 style="font-size: 4rem; color: var(--neon-amber); text-shadow: 0 0 20px var(--neon-amber); margin-bottom: 10px;">GAME OVER</h1>
+    <div id="podium-container" class="podium"></div>
+    <button onclick="resetToSetup()" style="margin-top: 50px;">Play Again</button>
+</div>
+
+<script>
+// ==================== CONFIG & STATE ====================
+const COLORS = [
+    { name: 'Cyan', hex: 'var(--neon-cyan)' },
+    { name: 'Pink', hex: 'var(--neon-pink)' },
+    { name: 'Amber', hex: 'var(--neon-amber)' },
+    { name: 'Green', hex: 'var(--neon-green)' }
+];
+
+let gameState = {
+    players: [],
+    board: [],
+    currentPlayerIdx: 0,
+    round: 1,
+    maxRounds: 5,
+    molPosition: -1,
+    eventDeck: []
+};
+
+const TOTAL_SPACES = 36;
+const GRID_SIZE = 10;
+
+// ==================== INITIALIZATION ====================
+function init() {
+    createParticles();
+    renderSetupSlots();
+}
+
+function createParticles() {
+    const pContainer = document.getElementById('particles');
+    for(let i=0; i<20; i++) {
+        let p = document.createElement('div');
+        p.className = 'particle';
+        let size = Math.random() * 20 + 5;
+        p.style.width = size + 'px'; p.style.height = size + 'px';
+        p.style.left = Math.random() * 100 + 'vw';
+        p.style.animationDuration = (Math.random() * 10 + 5) + 's';
+        p.style.animationDelay = (Math.random() * 5) + 's';
+        pContainer.appendChild(p);
+    }
+}
+
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+// ==================== SETUP ====================
+function renderSetupSlots() {
+    const container = document.getElementById('player-slots-container');
+    container.innerHTML = '';
+    for(let i=0; i<4; i++) {
+        container.innerHTML += `
+            <div class="player-slot">
+                <div class="color-swatch" style="background: ${COLORS[i].hex}"></div>
+                <input type="text" id="p-name-${i}" class="player-input" placeholder="Player ${i+1}">
+                <label class="toggle-label">
+                    <input type="checkbox" id="p-active-${i}" ${i<2 ? 'checked' : ''}> Active
+                </label>
+            </div>
+        `;
+    }
+}
+
+function startGame() {
+    let roundsInput = parseInt(document.getElementById('setup-rounds').value) || 5;
+    gameState.maxRounds = roundsInput;
+    document.getElementById('max-rounds-display').innerText = gameState.maxRounds;
+    
+    gameState.players = [];
+    for(let i=0; i<4; i++) {
+        let active = document.getElementById(`p-active-${i}`).checked;
+        let name = document.getElementById(`p-name-${i}`).value.trim();
+        if(active) {
+            if(!name) name = `Player ${i+1}`;
+            gameState.players.push({
+                id: i, name: name, color: COLORS[i].hex,
+                atoms: 0, mols: 0, pos: 0, tokenEl: null,
+                inventory: [], rollBonus: 0, rollPenalty: 0, loadedDice: null
+            });
+        }
+    }
+    
+    if(gameState.players.length < 2) {
+        document.getElementById('setup-error').style.display = 'block';
+        return;
+    }
+    document.getElementById('setup-error').style.display = 'none';
+    
+    gameState.round = 1;
+    gameState.currentPlayerIdx = 0;
+    
+    buildBoard();
+    spawnMol();
+    initEventDeck();
+    updateSidebar();
+    showScreen('board-screen');
+    renderTokens();
+    highlightCurrentPlayer();
+}
+
+// ==================== BOARD SETUP ====================
+function buildBoard() {
+    // Generate Space Types: 1 Start, 13 Blue, 10 Red, 6 Minigame, 4 Event, 2 Shop (indices 14 and 32)
+    let types = Array(13).fill('blue').concat(Array(10).fill('red')).concat(Array(6).fill('minigame')).concat(Array(4).fill('event'));
+    types.sort(() => Math.random() - 0.5); // shuffle
+    
+    gameState.board = ['start', ...types]; // 34 spaces so far
+    // Insert shops
+    gameState.board.splice(14, 0, 'shop');
+    gameState.board.splice(32, 0, 'shop');
+    
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    
+    // Map indices to grid coordinates (1-based for CSS grid)
+    let coords = [];
+    for(let c=1; c<=10; c++) coords.push({r: 1, c: c}); // top
+    for(let r=2; r<=10; r++) coords.push({r: r, c: 10}); // right
+    for(let c=9; c>=1; c--) coords.push({r: 10, c: c}); // bottom
+    for(let r=9; r>=2; r--) coords.push({r: r, c: 1}); // left
+    
+    for(let i=0; i<TOTAL_SPACES; i++) {
+        let cell = document.createElement('div');
+        cell.className = `space ${gameState.board[i]}`;
+        cell.id = `space-${i}`;
+        cell.style.gridRow = coords[i].r;
+        cell.style.gridColumn = coords[i].c;
+        if(i===0) cell.innerHTML = 'GO';
+        if(gameState.board[i] === 'shop') cell.innerHTML = '🛒';
+        grid.appendChild(cell);
+    }
+}
+
+function spawnMol() {
+    // Remove existing
+    let ex = document.getElementById('mol-marker-el');
+    if(ex) ex.remove();
+    
+    // Pick random space != 0
+    let r;
+    do { 
+        r = Math.floor(Math.random() * (TOTAL_SPACES-1)) + 1; 
+    } while(r === gameState.molPosition || gameState.board[r] === 'shop');
+    
+    gameState.molPosition = r;
+    
+    let space = document.getElementById(`space-${r}`);
+    let m = document.createElement('div');
+    m.id = 'mol-marker-el';
+    m.className = 'mol-marker';
+    m.innerHTML = '◎';
+    space.appendChild(m);
+}
+
+function renderTokens() {
+    // Remove old tokens
+    document.querySelectorAll('.player-token').forEach(t => t.remove());
+    
+    gameState.players.forEach(p => {
+        let t = document.createElement('div');
+        t.className = 'player-token';
+        t.style.backgroundColor = p.color;
+        t.innerHTML = p.name.charAt(0).toUpperCase();
+        t.id = `token-${p.id}`;
+        p.tokenEl = t;
+        placeToken(p);
+    });
+}
+
+function placeToken(player) {
+    let space = document.getElementById(`space-${player.pos}`);
+    // Offset slightly if multiple tokens on same space
+    let occupants = gameState.players.filter(p => p.pos === player.pos);
+    let idx = occupants.indexOf(player);
+    let offset = [ {x:0,y:0}, {x:-10,y:-10}, {x:10,y:10}, {x:-10,y:10}, {x:10,y:-10} ];
+    let o = offset[Math.min(idx, 4)];
+    
+    player.tokenEl.style.transform = `translate(${o.x}px, ${o.y}px)`;
+    space.appendChild(player.tokenEl);
+}
+
+function updateSidebar() {
+    document.getElementById('round-counter').innerText = gameState.round;
+    const info = document.getElementById('players-info');
+    info.innerHTML = '';
+    
+    gameState.players.forEach((p, idx) => {
+        let card = document.createElement('div');
+        card.className = `player-card ${idx === gameState.currentPlayerIdx ? 'active-turn' : ''}`;
+        
+        let penaltyTxt = p.rollPenalty > 0 ? `<span style="color:var(--neon-pink); font-size:0.8rem;">(-3 on roll)</span>` : '';
+        let bonusTxt = p.rollBonus > 0 ? `<span style="color:var(--neon-cyan); font-size:0.8rem;">(+5 on roll)</span>` : '';
+        let loadedTxt = p.loadedDice ? `<span style="color:var(--neon-amber); font-size:0.8rem;">(Dice: ${p.loadedDice})</span>` : '';
+
+        card.innerHTML = `
+            <h3><div class="swatch" style="background:${p.color}"></div> ${p.name}</h3>
+            <div class="stats">
+                <span title="Atoms">⚛ ${p.atoms}</span>
+                <span title="Mols">◎ ${p.mols}</span>
+            </div>
+            <div>${bonusTxt}${penaltyTxt}${loadedTxt}</div>
+        `;
+        info.appendChild(card);
+    });
+}
+
+function highlightCurrentPlayer() {
+    let p = gameState.players[gameState.currentPlayerIdx];
+    document.getElementById('turn-indicator').innerText = `${p.name}'s Turn!`;
+    document.getElementById('turn-indicator').style.color = p.color;
+    updateSidebar();
+}
+
+// ==================== GAMEPLAY LOOP ====================
+function takeTurn() {
+    let p = gameState.players[gameState.currentPlayerIdx];
+    document.getElementById('roll-btn').style.display = 'none';
+    document.getElementById('items-btn').style.display = 'none';
+    const die = document.getElementById('die');
+    document.getElementById('dice-container').style.display = 'block';
+
+    if(p.loadedDice) {
+        let roll = p.loadedDice;
+        p.loadedDice = null;
+        roll += p.rollBonus;
+        roll -= p.rollPenalty;
+        if(roll < 1) roll = 1;
+        p.rollBonus = 0; p.rollPenalty = 0;
+        updateSidebar();
+        
+        die.innerText = roll;
+        setTimeout(() => {
+            document.getElementById('dice-container').style.display = 'none';
+            movePlayer(roll);
+        }, 1000);
+        return;
+    }
+
+    die.classList.add('rolling');
+    
+    // Cycle numbers rapidly
+    let cycle = setInterval(() => { die.innerText = Math.floor(Math.random()*6)+1; }, 100);
+    
+    setTimeout(() => {
+        clearInterval(cycle);
+        die.classList.remove('rolling');
+        let roll = Math.floor(Math.random()*6)+1;
+        
+        roll += p.rollBonus;
+        roll -= p.rollPenalty;
+        if(roll < 1) roll = 1;
+        p.rollBonus = 0; p.rollPenalty = 0;
+        updateSidebar();
+        
+        die.innerText = roll;
+        
+        setTimeout(() => {
+            document.getElementById('dice-container').style.display = 'none';
+            movePlayer(roll);
+        }, 1000);
+    }, 1500);
+}
+
+function movePlayer(spaces) {
+    let p = gameState.players[gameState.currentPlayerIdx];
+    let steps = 0;
+    
+    function step() {
+        if(steps < spaces) {
+            p.pos = (p.pos + 1) % TOTAL_SPACES;
+            placeToken(p);
+            if(p.pos === 0) {
+                showToast("+5 atoms! (Passed Start)", p.color);
+                p.atoms += 5;
+                updateSidebar();
+            }
+            if(p.pos === gameState.molPosition) {
+                document.getElementById('mol-modal').classList.add('active');
+                window.continueMovement = function() {
+                    document.getElementById('mol-modal').classList.remove('active');
+                    steps++;
+                    setTimeout(step, 300);
+                };
+                return;
+            }
+            
+            if(gameState.board[p.pos] === 'shop') {
+                document.getElementById('shop-modal').classList.add('active');
+                window.continueMovement = function() {
+                    document.getElementById('shop-modal').classList.remove('active');
+                    steps++;
+                    setTimeout(step, 300);
+                };
+                return;
+            }
+            steps++;
+            setTimeout(step, 300);
+        } else {
+            // Reached destination
+            resolveSpace();
+        }
+    }
+    step();
+}
+
+function closeShop() {
+    if(window.continueMovement) {
+        let fn = window.continueMovement;
+        window.continueMovement = null;
+        fn();
+    } else {
+        document.getElementById('shop-modal').classList.remove('active');
+    }
+}
+
+function buyMol(choice) {
+    let p = gameState.players[gameState.currentPlayerIdx];
+    
+    if(choice) {
+        if(p.atoms >= 10) {
+            p.atoms -= 10;
+            p.mols += 1;
+            showToast("Mol Purchased! ◎", p.color);
+            updateSidebar();
+            spawnMol();
+        } else {
+            showToast("Not enough atoms!", "#ff0000");
+        }
+    }
+    
+    if(window.continueMovement) {
+        let fn = window.continueMovement;
+        window.continueMovement = null;
+        fn();
+    } else {
+        document.getElementById('mol-modal').classList.remove('active');
+        resolveSpace();
+    }
+}
+
+function resolveSpace() {
+    let p = gameState.players[gameState.currentPlayerIdx];
+    let type = gameState.board[p.pos];
+    
+    if(type === 'blue') {
+        p.atoms += 3;
+        showToast("+3 Atoms!", p.color);
+        updateSidebar();
+        promptEndTurn();
+    } 
+    else if(type === 'red') {
+        p.atoms = Math.max(0, p.atoms - 3);
+        showToast("-3 Atoms!", "#ff2d78");
+        updateSidebar();
+        promptEndTurn();
+    }
+    else if(type === 'start') {
+        // Already got +5 in movement, but if they land exactly on it:
+        // Actually, Mario party usually gives nothing extra for landing exactly. Let's just end turn.
+        promptEndTurn();
+    }
+    else if(type === 'event') {
+        triggerEvent();
+    }
+    else if(type === 'minigame') {
+        triggerMinigame();
+    }
+    else if(type === 'shop') {
+        promptEndTurn();
+    }
+}
+
+function promptEndTurn() {
+    document.getElementById('end-turn-btn').style.display = 'inline-block';
+}
+
+function endTurn() {
+    document.getElementById('end-turn-btn').style.display = 'none';
+    document.getElementById('roll-btn').style.display = 'inline-block';
+    document.getElementById('items-btn').style.display = 'inline-block';
+    
+    gameState.currentPlayerIdx++;
+    if(gameState.currentPlayerIdx >= gameState.players.length) {
+        gameState.currentPlayerIdx = 0;
+        gameState.round++;
+        if(gameState.round > gameState.maxRounds) {
+            showResults();
+            return;
+        }
+    }
+    highlightCurrentPlayer();
+}
+
+function showToast(msg, color) {
+    let p = gameState.players[gameState.currentPlayerIdx];
+    let rect = document.getElementById(`space-${p.pos}`).getBoundingClientRect();
+    let t = document.createElement('div');
+    t.className = 'toast';
+    t.style.left = rect.left + 'px';
+    t.style.top = rect.top + 'px';
+    t.style.borderColor = color;
+    t.innerHTML = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2000);
+}
+
+// ==================== ITEM SHOP & INVENTORY ====================
+function buyItem(name, cost) {
+    let p = gameState.players[gameState.currentPlayerIdx];
+    if(p.atoms >= cost) {
+        p.atoms -= cost;
+        p.inventory.push(name);
+        showToast("Purchased " + name, "#ff00ff");
+        updateSidebar();
+    } else {
+        showToast("Not enough atoms!", "#ff0000");
+    }
+}
+
+function openInventory() {
+    let p = gameState.players[gameState.currentPlayerIdx];
+    let list = document.getElementById('inventory-list');
+    list.innerHTML = '';
+    
+    if(p.inventory.length === 0) {
+        list.innerHTML = '<p>Your inventory is empty.</p>';
+    } else {
+        p.inventory.forEach((item, index) => {
+            let btn = document.createElement('button');
+            btn.className = 'amber-btn';
+            btn.innerText = `Use ${item}`;
+            btn.onclick = () => useItem(index, item);
+            list.appendChild(btn);
+        });
+    }
+    document.getElementById('inventory-modal').classList.add('active');
+}
+
+function closeInventory() {
+    document.getElementById('inventory-modal').classList.remove('active');
+}
+
+function useItem(index, item) {
+    let p = gameState.players[gameState.currentPlayerIdx];
+    p.inventory.splice(index, 1); // remove item
+    closeInventory();
+    
+    if(item === 'Catalyst') {
+        p.rollBonus += 5;
+        showToast("Used Catalyst! (+5 to roll)", "var(--neon-cyan)");
+        updateSidebar();
+    } else if(item === 'Loaded Dice') {
+        document.getElementById('custom-dice-modal').classList.add('active');
+    } else if(item === 'Inhibitor') {
+        openSabotageTarget();
+    }
+}
+
+function applyCustomDice() {
+    let p = gameState.players[gameState.currentPlayerIdx];
+    let val = parseInt(document.getElementById('custom-dice-input').value) || 1;
+    if(val < 1) val = 1; if(val > 6) val = 6;
+    p.loadedDice = val;
+    document.getElementById('custom-dice-modal').classList.remove('active');
+    showToast(`Loaded Dice set to ${val}`, "var(--neon-amber)");
+    updateSidebar();
+}
+
+function openSabotageTarget() {
+    let p = gameState.players[gameState.currentPlayerIdx];
+    let list = document.getElementById('target-list');
+    list.innerHTML = '';
+    
+    gameState.players.forEach(target => {
+        if(target.id !== p.id) {
+            let btn = document.createElement('button');
+            btn.className = 'pink-btn';
+            btn.innerHTML = `<div class="swatch" style="background:${target.color}; display:inline-block; width:15px; height:15px; border-radius:50%;"></div> ${target.name}`;
+            btn.onclick = () => applySabotage(target.id);
+            list.appendChild(btn);
+        }
+    });
+    
+    document.getElementById('target-modal').classList.add('active');
+}
+
+function applySabotage(targetId) {
+    let target = gameState.players.find(pl => pl.id === targetId);
+    target.rollPenalty += 3;
+    document.getElementById('target-modal').classList.remove('active');
+    showToast(`Sabotaged ${target.name}! (-3 to roll)`, "var(--neon-pink)");
+    updateSidebar();
+}
+
+// ==================== EVENTS ====================
+function initEventDeck() {
+    gameState.eventDeck = [
+        { title: "Catalyst!", emoji: "⚡", desc: "Take an extra turn immediately!", action: (p) => { gameState.currentPlayerIdx--; } },
+        { title: "Endothermic", emoji: "❄️", desc: "Energy absorbed. Lose 5 atoms.", action: (p) => { p.atoms = Math.max(0, p.atoms-5); } },
+        { title: "Exothermic", emoji: "🔥", desc: "Energy released. Gain 5 atoms.", action: (p) => { p.atoms += 5; } },
+        { title: "Chain Reaction", emoji: "💥", desc: "Everyone gains 2 atoms!", action: (p) => { gameState.players.forEach(pl => pl.atoms += 2); } },
+        { title: "Nobel Prize", emoji: "🏅", desc: "Amazing discovery! Gain 8 atoms.", action: (p) => { p.atoms += 8; } },
+        { title: "Lab Explosion", emoji: "🧨", desc: "Oops! Lose 8 atoms.", action: (p) => { p.atoms = Math.max(0, p.atoms-8); } },
+        { title: "Equilibrium", emoji: "⚖️", desc: "All atoms averaged.", action: (p) => { 
+            let sum = gameState.players.reduce((acc, pl) => acc + pl.atoms, 0);
+            let avg = Math.floor(sum / gameState.players.length);
+            gameState.players.forEach(pl => pl.atoms = avg);
+        }}
+    ];
+}
+
+let currentEventAction = null;
+function triggerEvent() {
+    let ev = gameState.eventDeck[Math.floor(Math.random() * gameState.eventDeck.length)];
+    document.getElementById('ev-emoji').innerText = ev.emoji;
+    document.getElementById('ev-title').innerText = ev.title;
+    document.getElementById('ev-desc').innerText = ev.desc;
+    document.getElementById('event-card').classList.remove('flipped');
+    document.getElementById('ev-continue-btn').style.display = 'none';
+    currentEventAction = ev.action;
+    showScreen('event-screen');
+}
+
+function flipEventCard() {
+    let card = document.getElementById('event-card');
+    if(!card.classList.contains('flipped')) {
+        card.classList.add('flipped');
+        setTimeout(() => {
+            currentEventAction(gameState.players[gameState.currentPlayerIdx]);
+            updateSidebar();
+            document.getElementById('ev-continue-btn').style.display = 'inline-block';
+        }, 1000);
+    }
+}
+
+function closeEvent() {
+    showScreen('board-screen');
+    promptEndTurn();
+}
+
+
+// ==================== MINI-GAMES ====================
+let mgTimerInterval;
+let mgTimeLeft;
+
+const MINIGAMES = [
+    {
+        name: "Name That Compound",
+        generate: () => {
+            const qs = [
+                {q: "H₂SO₄", a: "Sulfuric acid", bad: ["Sulfurous acid", "Hydrogen sulfate", "Hydrosulfuric acid"]},
+                {q: "NaCl", a: "Sodium chloride", bad: ["Sodium chlorate", "Sodium chlorite", "Salt chloride"]},
+                {q: "Fe₂O₃", a: "Iron(III) oxide", bad: ["Iron(II) oxide", "Iron oxygen", "Ferrous oxide"]},
+                {q: "Ca(OH)₂", a: "Calcium hydroxide", bad: ["Calcium oxygen hydride", "Calcium hydrate", "Calc hydroxide"]},
+                {q: "NH₃", a: "Ammonia", bad: ["Nitrogen trihydride", "Ammonium", "Nitric acid"]},
+                {q: "HNO₃", a: "Nitric acid", bad: ["Nitrous acid", "Hydrogen nitrate", "Hydronitric acid"]},
+                {q: "KMnO₄", a: "Potassium permanganate", bad: ["Potassium manganate", "Potassium manganese oxide", "Permanganate potassium"]},
+                {q: "MgCl₂", a: "Magnesium chloride", bad: ["Magnesium(II) chloride", "Magnesium chlorite", "Magnesium dichloride"]}
+            ];
+            return qs[Math.floor(Math.random()*qs.length)];
+        }
+    },
+    {
+        name: "Balance It!",
+        generate: () => {
+            const qs = [
+                {q: "__ H₂ + __ O₂ → __ H₂O", a: "2, 1, 2", bad: ["1, 1, 1", "2, 2, 2", "1, 2, 1"]},
+                {q: "__ N₂ + __ H₂ → __ NH₃", a: "1, 3, 2", bad: ["2, 3, 1", "1, 2, 3", "3, 1, 2"]},
+                {q: "__ Fe + __ O₂ → __ Fe₂O₃", a: "4, 3, 2", bad: ["2, 3, 1", "2, 1, 2", "4, 2, 3"]},
+                {q: "__ CH₄ + __ O₂ → __ CO₂ + __ H₂O", a: "1, 2, 1, 2", bad: ["2, 1, 2, 1", "1, 1, 1, 1", "2, 2, 2, 2"]},
+                {q: "__ Na + __ Cl₂ → __ NaCl", a: "2, 1, 2", bad: ["1, 1, 1", "2, 2, 1", "1, 2, 2"]},
+                {q: "__ C + __ O₂ → __ CO₂", a: "1, 1, 1", bad: ["2, 1, 2", "1, 2, 1", "2, 2, 2"]}
+            ];
+            return qs[Math.floor(Math.random()*qs.length)];
+        }
+    },
+    {
+        name: "Mole Math",
+        generate: () => {
+            const qs = [
+                {q: "Grams in 2 moles of H₂O?", a: "36 g", bad: ["18 g", "4 g", "32 g"]},
+                {q: "Moles in 44g of CO₂?", a: "1 mol", bad: ["2 mol", "0.5 mol", "12 mol"]},
+                {q: "Grams in 3 mol NaCl?", a: "175.5 g", bad: ["58.5 g", "117 g", "234 g"]},
+                {q: "Grams in 0.5 mol O₂?", a: "16 g", bad: ["32 g", "8 g", "4 g"]},
+                {q: "Grams in 1 mol Ca?", a: "40 g", bad: ["20 g", "80 g", "10 g"]},
+                {q: "Grams in 2 mol H₂?", a: "4 g", bad: ["2 g", "1 g", "8 g"]}
+            ];
+            return qs[Math.floor(Math.random()*qs.length)];
+        }
+    },
+    {
+        name: "Predict the Reaction",
+        generate: () => {
+            const qs = [
+                {q: "HCl + NaOH → ?", a: "NaCl + H₂O", bad: ["NaH + ClOH", "NaO + HCl₂", "ClNa + OH₂"]},
+                {q: "Na + H₂O → ?", a: "NaOH + H₂", bad: ["NaO + H₂", "NaH + O₂", "NaH₂O"]},
+                {q: "Zn + HCl → ?", a: "ZnCl₂ + H₂", bad: ["ZnH + Cl₂", "ZnCl + H", "Zn + H₂Cl"]},
+                {q: "CaCO₃ + Heat → ?", a: "CaO + CO₂", bad: ["Ca + CO₃", "CaC + O₃", "CaCO + O₂"]},
+                {q: "H₂ + Cl₂ → ?", a: "HCl", bad: ["H₂Cl₂", "H + Cl", "HCl₂"]},
+                {q: "Mg + O₂ → ?", a: "MgO", bad: ["Mg₂O", "MgO₂", "Mg₂O₂"]}
+            ];
+            return qs[Math.floor(Math.random()*qs.length)];
+        }
+    },
+    {
+        name: "Force Match",
+        generate: () => {
+            const qs = [
+                {q: "Dominant IMF in HF?", a: "Hydrogen bonding", bad: ["London dispersion", "Dipole-dipole", "Ionic"]},
+                {q: "Dominant IMF in CO₂?", a: "London dispersion", bad: ["Hydrogen bonding", "Dipole-dipole", "Ionic"]},
+                {q: "Dominant IMF in HCl?", a: "Dipole-dipole", bad: ["Hydrogen bonding", "London dispersion", "Ionic"]},
+                {q: "Dominant IMF in Ne?", a: "London dispersion", bad: ["Hydrogen bonding", "Dipole-dipole", "Ionic"]},
+                {q: "Dominant IMF in H₂O?", a: "Hydrogen bonding", bad: ["London dispersion", "Dipole-dipole", "Ionic"]},
+                {q: "Dominant IMF in NH₃?", a: "Hydrogen bonding", bad: ["London dispersion", "Dipole-dipole", "Ionic"]},
+                {q: "Dominant IMF in CH₄?", a: "London dispersion", bad: ["Hydrogen bonding", "Dipole-dipole", "Ionic"]},
+                {q: "Dominant force in NaCl?", a: "Ionic", bad: ["Hydrogen bonding", "London dispersion", "Dipole-dipole"]}
+            ];
+            return qs[Math.floor(Math.random()*qs.length)];
+        }
+    },
+    {
+        name: "pH Blitz",
+        generate: () => {
+            const qs = [
+                {q: "HCl is a...", a: "Strong acid", bad: ["Weak acid", "Strong base", "Weak base"]},
+                {q: "NaOH is a...", a: "Strong base", bad: ["Weak base", "Neutral", "Strong acid"]},
+                {q: "CH₃COOH is a...", a: "Weak acid", bad: ["Strong acid", "Weak base", "Neutral"]},
+                {q: "NH₃ is a...", a: "Weak base", bad: ["Strong base", "Weak acid", "Neutral"]},
+                {q: "Pure H₂O is...", a: "Neutral", bad: ["Weak acid", "Weak base", "Strong acid"]},
+                {q: "H₂SO₄ is a...", a: "Strong acid", bad: ["Weak acid", "Strong base", "Neutral"]},
+                {q: "HF is a...", a: "Weak acid", bad: ["Strong acid", "Weak base", "Strong base"]},
+                {q: "KOH is a...", a: "Strong base", bad: ["Weak base", "Strong acid", "Neutral"]}
+            ];
+            return qs[Math.floor(Math.random()*qs.length)];
+        }
+    },
+    {
+        name: "Enthalpy Snap",
+        generate: () => {
+            const qs = [
+                {q: "Combustion of methane", a: "Exothermic", bad: ["Endothermic", "Isothermic", "No reaction"]},
+                {q: "Photosynthesis", a: "Endothermic", bad: ["Exothermic", "Isothermic", "No reaction"]},
+                {q: "Dissolving NaOH in water", a: "Exothermic", bad: ["Endothermic", "Isothermic", "No reaction"]},
+                {q: "Melting ice", a: "Endothermic", bad: ["Exothermic", "Isothermic", "No reaction"]},
+                {q: "Rusting iron", a: "Exothermic", bad: ["Endothermic", "Isothermic", "No reaction"]},
+                {q: "Baking soda + vinegar", a: "Endothermic", bad: ["Exothermic", "Isothermic", "No reaction"]}
+            ];
+            return qs[Math.floor(Math.random()*qs.length)];
+        }
+    },
+    {
+        name: "Gas Law Dash",
+        generate: () => {
+            const qs = [
+                {q: "Gas at 2 atm, 1L. Drops to 1 atm. New volume?", a: "2 L", bad: ["1 L", "0.5 L", "4 L"]},
+                {q: "Gas at 300K, 2L. Heats to 600K. New volume?", a: "4 L", bad: ["1 L", "2 L", "8 L"]},
+                {q: "Law for Volume & Temperature?", a: "Charles's Law", bad: ["Boyle's Law", "Ideal Gas Law", "Avogadro's Law"]},
+                {q: "Law for Pressure & Volume?", a: "Boyle's Law", bad: ["Charles's Law", "Ideal Gas Law", "Gay-Lussac's Law"]},
+                {q: "Equation for Ideal Gas Law?", a: "PV=nRT", bad: ["P₁V₁=P₂V₂", "V₁/T₁=V₂/T₂", "PT=nRV"]}
+            ];
+            return qs[Math.floor(Math.random()*qs.length)];
+        }
+    }
+];
+
+function triggerMinigame() {
+    let mg = MINIGAMES[Math.floor(Math.random() * MINIGAMES.length)];
+    let data = mg.generate();
+    
+    document.getElementById('mg-title').innerText = mg.name;
+    document.getElementById('mg-question').innerText = data.q;
+    
+    let options = [data.a, ...data.bad];
+    options.sort(() => Math.random() - 0.5);
+    
+    let optsContainer = document.getElementById('mg-options');
+    optsContainer.innerHTML = '';
+    
+    options.forEach(opt => {
+        let b = document.createElement('button');
+        b.className = 'mg-option';
+        b.innerText = opt;
+        if (opt === data.a) b.dataset.correct = "true";
+        b.onclick = () => selectMgOption(b, opt === data.a);
+        optsContainer.appendChild(b);
+    });
+    
+    document.getElementById('mg-continue-btn').style.display = 'none';
+    showScreen('minigame-screen');
+    
+    // Timer
+    mgTimeLeft = 20;
+    let bar = document.getElementById('timer-bar');
+    bar.style.width = '100%';
+    bar.style.backgroundColor = 'var(--neon-green)';
+    
+    mgTimerInterval = setInterval(() => {
+        mgTimeLeft -= 0.1;
+        let pct = (mgTimeLeft / 20) * 100;
+        bar.style.width = pct + '%';
+        
+        if(mgTimeLeft <= 10) bar.style.backgroundColor = 'var(--neon-amber)';
+        if(mgTimeLeft <= 5) bar.style.backgroundColor = 'var(--neon-pink)';
+        
+        if(mgTimeLeft <= 0) {
+            clearInterval(mgTimerInterval);
+            endMinigame(false, null);
+        }
+    }, 100);
+}
+
+function selectMgOption(btn, isCorrect) {
+    if(!mgTimerInterval) return; // already answered
+    clearInterval(mgTimerInterval);
+    mgTimerInterval = null;
+    
+    // Show answers
+    document.querySelectorAll('.mg-option').forEach(b => {
+        b.disabled = true;
+    });
+    
+    if(isCorrect) {
+        btn.classList.add('correct');
+        document.getElementById('mg-question').innerHTML += "<br><span style='color:var(--neon-green);'>Correct! +5 ⚛</span>";
+        gameState.players[gameState.currentPlayerIdx].atoms += 5;
+    } else {
+        btn.classList.add('wrong');
+        let correctBtn = document.querySelector('.mg-option[data-correct="true"]');
+        if (correctBtn) correctBtn.classList.add('correct');
+        document.getElementById('mg-question').innerHTML += "<br><span style='color:var(--neon-pink);'>Wrong!</span>";
+    }
+    
+    updateSidebar();
+    document.getElementById('mg-continue-btn').style.display = 'inline-block';
+}
+
+function endMinigame(timeout, btn) {
+    if(timeout) {
+        document.getElementById('mg-question').innerHTML += "<br><span style='color:var(--neon-pink);'>Time's Up!</span>";
+        let correctBtn = document.querySelector('.mg-option[data-correct="true"]');
+        if (correctBtn) correctBtn.classList.add('correct');
+        document.querySelectorAll('.mg-option').forEach(b => b.disabled = true);
+        document.getElementById('mg-continue-btn').style.display = 'inline-block';
+    }
+}
+
+function closeMiniGame() {
+    showScreen('board-screen');
+    promptEndTurn();
+}
+
+// ==================== RESULTS ====================
+function showResults() {
+    showScreen('results-screen');
+    
+    // Calculate scores
+    let sorted = [...gameState.players].map(p => {
+        return {
+            ...p,
+            score: p.atoms + (p.mols * 10)
+        };
+    }).sort((a,b) => b.score - a.score);
+    
+    const titles = ["Grand Chemist 🏆", "Lab Veteran 🥈", "Apprentice Chemist 🥉", "Lab Intern 😅"];
+    
+    let container = document.getElementById('podium-container');
+    container.innerHTML = '';
+    
+    // Display in order 2, 1, 3, 4 for podium aesthetic
+    let displayOrder = [];
+    if(sorted[1]) displayOrder.push({p: sorted[1], rank: 2});
+    displayOrder.push({p: sorted[0], rank: 1});
+    if(sorted[2]) displayOrder.push({p: sorted[2], rank: 3});
+    if(sorted[3]) displayOrder.push({p: sorted[3], rank: 4});
+    
+    displayOrder.forEach(item => {
+        let s = document.createElement('div');
+        s.className = `podium-spot spot-${item.rank}`;
+        s.innerHTML = `
+            <div class="podium-name" style="color:${item.p.color}">
+                ${item.p.name}<br>
+                <span style="font-size:0.8rem; color:#fff">${titles[item.rank-1]}</span>
+            </div>
+            <div class="podium-score">⚛${item.p.atoms} ◎${item.p.mols}</div>
+            <div class="podium-score" style="color:var(--neon-amber)">Total: ${item.p.score}</div>
+            <div class="podium-bar">${item.rank}</div>
+        `;
+        container.appendChild(s);
+    });
+    
+    createParticles(); // celebratory
+}
+
+function resetToSetup() {
+    showScreen('setup-screen');
+}
+
+// Initialize the game
+window.onload = init;
+
+</script>
+</body>
+</html>
