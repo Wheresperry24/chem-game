@@ -325,7 +325,7 @@
         <!-- Slots injected by JS -->
     </div>
     <div style="margin-top: 20px; font-size: 1.5rem;">
-        Total Rounds: <input type="number" id="setup-rounds" value="5" min="1" max="50" class="player-input" style="width: 80px; text-align: center;">
+        Total Rounds: <input type="number" id="setup-rounds" value="15" min="1" max="500" class="player-input" style="width: 80px; text-align: center;">
     </div>
     <button onclick="startGame()" style="margin-top: 30px; font-size: 1.5rem;">Begin!</button>
     <p id="setup-error" style="color: var(--neon-pink); margin-top: 15px; display: none;">Need at least 2 active players with names!</p>
@@ -1186,7 +1186,8 @@ function selectMgOption(btn, isCorrect) {
         btn.classList.add('wrong');
         let correctBtn = document.querySelector('.mg-option[data-correct="true"]');
         if (correctBtn) correctBtn.classList.add('correct');
-        document.getElementById('mg-question').innerHTML += "<br><span style='color:var(--neon-pink);'>Wrong!</span>";
+        document.getElementById('mg-question').innerHTML += "<br><span style='color:var(--neon-pink);'>Wrong! -2 ⚛</span>";
+        gameState.players[gameState.currentPlayerIdx].atoms -= 2;
     }
     
     updateSidebar();
